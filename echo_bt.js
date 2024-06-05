@@ -40,11 +40,15 @@ let bluetoothDevice;
              document.getElementById('connectionStatus').innerText = 'Bluetooth Status: Connected !';
              console.log('Connected to Bluetooth device:', bluetoothDevice);
              bt_status = 1;
-         } catch (error) {
+             bluetoothDevice.addEventListener('gattserverdisconnected', function(e) {
+                console.warn('disconnected from Bluetooth:', e);
+                disconnect();
+              });
+          } catch (error) {
              document.getElementById('connectionStatus').innerText = 'Bluetooth Status: Error connecting, try again.';
              console.error('Error connecting to the Bluetooth device:', error);
              bt_status = 0;
-         }
+          }
        }
 
        async function disconnect() {
@@ -93,7 +97,7 @@ let bluetoothDevice;
        }
 
 
-       setInterval(async () => {if (bluetoothDevice) await  writeCommand(cmd); }, 250); // write the current command to the drone every 250ms
+      setInterval(async () => {if (bluetoothDevice) await writeCommand(cmd); }, 250); // write the current command to the drone every 250ms
 
 
        async function writeLaunch(data) {
