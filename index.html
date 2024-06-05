@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Pitsco ECHO Drone</title>
+  <script src="acorn_interpreter.js"></script>
+  <script src="blockly_compressed.js"></script>
+  <script src="blocks_compressed.js"></script>
+  <script src="javascript_compressed.js"></script>
+  <script src="en.js"></script>
+  <script src="wait_block.js"></script>
+  <script src="echo_blocks.js"></script>
+  <script src="echo_generator.js"></script>
+  <script src="echo_bt.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background-color: #263238;
+      color: #fff;
+      font-family: sans-serif;
+    }
+    h1 {
+      font-weight: normal;
+      font-size: 140%;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pitsco ECHO Drone App</h1>
+
+
+  <p>
+
+    <button onclick="connect()" id="connectButton">Connect Echo</button>
+    <button onclick="disconnect()" id="disconnectButton">Disconnect Echo</button>
+    <label id="connectionStatus">Bluetooth Status: Disconnected</label>
+  </p>
+
+  <div style="width: 100%">
+    <div id="blocklyDiv"
+        style="display: inline-block; height: 540px; width: 95%"></div>
+
+  </div>
+
+  <p>
+    <button id = openBlocks class ="openButton" onclick="document.getElementById('file-input').click();">Open Blocks</button>
+    <input accept=".blockly" id="file-input" type="file" name="name" onchange="readFiles(this.files)" style="display: none;" />
+    <button id="saveBlocks" onclick="saveBlocklyCodeToFile()">Save Blocks</button>
+    <button onclick="discardBlocks()" id="runButton">Clear Workspace</button>
+    <button onclick="runCode()" id="runButton">Run Code</button>
+  </p>
+
+  <xml xmlns="https://developers.google.com/blockly/xml" id="toolbox" style="display: none">
+    <category name="Flight" colour= "#7B1FA2">
+      <block type="take_off"></block>
+      <block type="hover">
+        <value name="seconds">
+        <shadow type="math_number">
+          <field name="NUM">1</field>
+        </shadow>
+        </value>
+      </block>
+      <block type="fly">
+        <value name="seconds">
+        <shadow type="math_number">
+          <field name="NUM">1</field>
+        </shadow>
+        </value>
+        <value name="power">
+        <shadow type="math_number">
+          <field name="NUM">100</field>
+        </shadow>
+        </value>
+      </block>
+      <block type="spin">
+        <value name="seconds">
+        <shadow type="math_number">
+          <field name="NUM">1</field>
+        </shadow>
+        </value>
+        <value name="power">
+        <shadow type="math_number">
+          <field name="NUM">100</field>
+        </shadow>
+        </value>
+      </block>
+      <block type="land"></block>
+    </category>
+
+    <sep></sep>
+    <sep></sep>
+
+    <category name="Timing" colour="#eea011">
+        <block type="wait_seconds"></block>
+    </category>
+
+    <category name="Logic" colour="%{BKY_LOGIC_HUE}">
+      <block type="controls_if"></block>
+      <block type="logic_compare"></block>
+      <block type="logic_operation"></block>
+      <block type="logic_negate"></block>
+      <block type="logic_boolean"></block>
+    </category>
+    <category name="Loops" colour="%{BKY_LOOPS_HUE}">
+      <block type="controls_repeat_ext">
+        <value name="TIMES">
+          <block type="math_number">
+            <field name="NUM">10</field>
+          </block>
+        </value>
+      </block>
+      <block type="controls_whileUntil"></block>
+    </category>
+    <category name="Math" colour="%{BKY_MATH_HUE}">
+      <block type="math_number">
+        <field name="NUM">123</field>
+      </block>
+      <block type="math_arithmetic"></block>
+      <block type="math_single"></block>
+    </category>
+    <category name="Text" colour="%{BKY_TEXTS_HUE}">
+      <block type="text"></block>
+      <block type="text_length"></block>
+      <block type="text_print"></block>
+      <block type="text_prompt_ext">
+        <value name="TEXT">
+          <block type="text"></block>
+        </value>
+      </block>
+    </category>
+    <sep></sep>
+    <sep></sep>
+    <category name="Variables" custom="VARIABLE" colour="%{BKY_VARIABLES_HUE}">
+    </category>
+    <category name="Functions" custom="PROCEDURE" colour="%{BKY_PROCEDURES_HUE}">
+    </category>
+  </xml>
+
+
+  <script>
+
+    var demoWorkspace = Blockly.inject('blocklyDiv',
+        {media: '../../media/',
+         toolbox: document.getElementById('toolbox'),
+         zoom: {
+            controls: true,
+            wheel: true,
+            startScale: 1.0,
+            maxScale: 3,
+            minScale: 0.3,
+            scaleSpeed: 1.2
+          },
+          trashcan: true,
+          resize: true
+       });
+
+
+    // Exit is used to signal the end of a script.
+    Blockly.JavaScript.addReservedWords('exit');
+
+    var runButton = document.getElementById('runButton');
+    var myInterpreter = null;
+    var runner;
+
+    function initApi(interpreter, globalObject) {
+      // Add an API function for the alert() block, generated for "text_print" blocks.
+      var wrapper = function(text) {
+        text = text ? text.toString() : '';
+      };
+      interpreter.setProperty(globalObject, 'alert',
+          interpreter.createNativeFunction(wrapper));
+
+      // Add an API function for the prompt() block.
+      var wrapper = function(text) {
+        text = text ? text.toString() : '';
+        return interpreter.createPrimitive(prompt(text));
+      };
+      interpreter.setProperty(globalObject, 'prompt',
+          interpreter.createNativeFunction(wrapper));
+
+      // Add an API for the wait block.  See wait_block.js
+      initInterpreterWaitForSeconds(interpreter, globalObject);
+
+      // Add an API function for highlighting blocks.
+      var wrapper = function(id) {
+        id = id ? id.toString() : '';
+        return interpreter.createPrimitive(highlightBlock(id));
+      };
+      interpreter.setProperty(globalObject, 'highlightBlock',
+          interpreter.createNativeFunction(wrapper));
+
+      // Add an API function for take off block
+       var wrapper = function() {
+         return interpreter.createPrimitive(launch_echo());
+       };
+       interpreter.setProperty(globalObject, 'launch_echo',
+           interpreter.createNativeFunction(wrapper));
+
+      // Add an API function for land block
+       var wrapper = function() {
+         return interpreter.createPrimitive(land_echo());
+       };
+       interpreter.setProperty(globalObject, 'land_echo',
+           interpreter.createNativeFunction(wrapper));
+
+      // Add an API function for hover block
+       var wrapper = function() {
+         return interpreter.createPrimitive(hover());
+       };
+       interpreter.setProperty(globalObject, 'hover',
+           interpreter.createNativeFunction(wrapper));
+
+      // Add an API function for fly block
+       var wrapper = function(direction,time,power) {
+         return interpreter.createPrimitive(fly(direction,time,power));
+       };
+       interpreter.setProperty(globalObject, 'fly',
+           interpreter.createNativeFunction(wrapper));
+
+      // Add an API function for spin block
+       var wrapper = function(direction,time,power) {
+         return interpreter.createPrimitive(spin(direction,time,power));
+        };
+        interpreter.setProperty(globalObject, 'spin',
+            interpreter.createNativeFunction(wrapper));
+
+    }
+
+
+    var highlightPause = false;
+    var latestCode = '';
+
+    function highlightBlock(id) {
+      demoWorkspace.highlightBlock(id);
+      highlightPause = true;
+    }
+
+    function resetStepUi(clearOutput) {
+      demoWorkspace.highlightBlock(null);
+      highlightPause = false;
+      runButton.disabled = '';
+
+      if (clearOutput) {
+      //  outputArea.value = 'Program output:\n=================';
+      }
+    }
+
+    function generateCodeAndLoadIntoInterpreter() {
+      // Generate JavaScript code and parse it.
+      Blockly.JavaScript.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
+      Blockly.JavaScript.addReservedWords('highlightBlock');
+      latestCode = Blockly.JavaScript.workspaceToCode(demoWorkspace);
+
+      resetStepUi(true);
+    }
+
+    function resetInterpreter() {
+      myInterpreter = null;
+      if (runner) {
+        clearTimeout(runner);
+        runner = null;
+      }
+    }
+
+    function runCode() {
+      if (!myInterpreter) {
+        // First statement of this code.
+        // Clear the program output.
+        resetStepUi(true);
+        runButton.disabled = 'disabled';
+
+        // And then show generated code in an alert.
+        setTimeout(function() {
+          console.log(latestCode);
+          alert('Ready to execute the Block code for ECHO');
+
+          // Begin execution
+          highlightPause = false;
+          myInterpreter = new Interpreter(latestCode, initApi);
+          runner = function() {
+            if (myInterpreter) {
+              var hasMore = myInterpreter.run();
+              if (hasMore) {
+                // Execution is currently blocked by some async call.
+                // Try again later.
+                setTimeout(runner, 10);
+              } else {
+                // Program is complete.
+                // outputArea.value += '\n\n<< Program complete >>';
+                resetInterpreter();
+                resetStepUi(false);
+              }
+            }
+          };
+          runner();
+        }, 1);
+        return;
+      }
+    }
+
+    // Load the interpreter now, and upon future changes.
+    generateCodeAndLoadIntoInterpreter();
+    demoWorkspace.addChangeListener(function(event) {
+      if (!(event instanceof Blockly.Events.Ui)) {
+        // Something changed. Parser needs to be reloaded.
+        resetInterpreter();
+        generateCodeAndLoadIntoInterpreter();
+      }
+    });
+
+    function saveBlocklyCodeToFile() {
+                var a = document.createElement("a");
+                document.body.appendChild(a);
+                a.style = "display: none";
+
+                var xml = Blockly.Xml.workspaceToDom(demoWorkspace);
+                var xml_text = Blockly.Xml.domToPrettyText(xml);
+
+                var json = JSON.stringify(xml_text),
+                    blob = new Blob([xml_text], {type: "text/plain;charset=utf-8"}),
+                    url = window.URL.createObjectURL(blob);
+                a.href = url;
+                a.download = "code.blockly";
+                a.click();
+                window.URL.revokeObjectURL(url);
+              }
+
+     function readFiles(){
+             var files = event.target.files;
+                // Only allow uploading one file.
+                if (files.length != 1) {
+                  return;
+              }
+              // FileReader
+              var reader = new FileReader();
+              reader.onloadend = function(event) {
+                var target = event.target;
+                // 2 == FileReader.DONE
+                if (target.readyState == 2) {
+                  try {
+                    var xml = Blockly.Xml.textToDom(target.result);
+                  } catch (e) {
+                    alert('Error parsing XML:\n' + e);
+                    return;
+                  }
+                  var count = Blockly.mainWorkspace.getAllBlocks().length;
+                  if (count && confirm('Replace existing blocks?\n"Cancel" will merge.')) {
+                    Blockly.mainWorkspace.clear();
+                  }
+                  Blockly.Xml.domToWorkspace(Blockly.mainWorkspace, xml);
+                  }
+                // Reset value of input after loading because Chrome will not fire
+                // a 'change' event if the same file is loaded again.
+                document.getElementById('file-input').value = '';
+              };
+              reader.readAsText(files[0]);
+            }
+
+      function discardBlocks() {
+              var count = Blockly.mainWorkspace.getAllBlocks().length;
+              if (count < 2 || window.confirm('Delete all ' + count + ' blocks?')) {
+                Blockly.mainWorkspace.clear();
+                Blockly.mainWorkspace.zoomToFit();
+              }
+            }
+  </script>
+</body>
+</html>

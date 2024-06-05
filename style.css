@@ -1,0 +1,76 @@
+
+
+/* Blockly Toolbox styling*/
+/* Makes our label white. */
+.blocklyTreeLabel {
+  color: white;
+
+
+}
+/* Adds padding around the group of categories and separators. */
+.blocklyToolboxContents {
+  padding: .5em;
+  background-color: #263238;
+
+
+}
+/* Adds space between the categories, rounds the corners and adds space around the label. */
+.blocklyTreeRow {
+  padding: 3px;
+  margin-bottom: .5em;
+  border-radius: 4px;
+}
+
+#connectButton{
+  margin: 3px 3px 3px 3px;
+  background-color: #263238;
+  color: #fff;
+  font-weight: normal;
+  font-size: 16px;
+  padding: 5px 10px;
+}
+
+#disconnectButton{
+  margin: 3px 3px 3px 3px;
+  background-color: #263238;
+  color: #fff;
+  font-weight: normal;
+  font-size: 16px;
+  padding: 5px 10px;
+}
+
+#runButton{
+  margin: 3px 3px 3px 3px;
+  background-color: #263238;
+  color: #fff;
+  font-weight: normal;
+  font-size: 16px;
+  padding: 5px 10px;
+}
+
+#saveBlocks{
+  margin: 3px 3px 3px 3px;
+  background-color: #263238;
+  color: #fff;
+  font-weight: normal;
+  font-size: 16px;
+  padding: 5px 10px;
+}
+
+#openBlocks{
+  margin: 3px 3px 3px 3px;
+  background-color: #263238;
+  color: #fff;
+  font-weight: normal;
+  font-size: 16px;
+  padding: 5px 10px;
+}
+
+#connectionStatus{
+  margin: 3px 3px 3px 3px;
+  background-color: #263238;
+  color: #fff;
+  font-weight: normal;
+  font-size: 16px;
+  padding: 5px 10px;
+}
