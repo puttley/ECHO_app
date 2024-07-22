@@ -19,6 +19,8 @@ let bluetoothDevice;
        let neutral_hover = '204,128,128,0,128,128,64,64,0,0,0,128,51';
        let throttle_up   = '204,192,128,0,128,128,64,64,0,0,0,192,51';
        let throttle_dwn  = '204,64,128,0,128,128,64,64,0,0,0,64,51';
+       let emergency_stop = '204,128,128,0,128,128,64,64,0,1,0,129,51';    // This doesn't appear to be supported in ECHO firmware
+       let land_now       = '204,0,128,0,128,128,64,64,0,0,0,0,51';        // Throttle '0' seems to work as a land command
        let cmd = neutral_hover;
 
 
@@ -153,7 +155,8 @@ let bluetoothDevice;
 
        function land_echo(){
          console.log('land block');
-         writeLaunch('204,128,128,0,128,128,64,64,8,0,0,136,51');
+         //writeLaunch('204,128,128,0,128,128,64,64,8,0,0,136,51');
+         setCommand(land_now);    // set throttle to zero (minimum) forces a land
        }
 
        function hover(){
